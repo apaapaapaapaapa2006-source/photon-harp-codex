@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#050208">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="指と指の間に光の弦を張って演奏するカメラ楽器 - PHOTON HARP CODEX">
+<title>PHOTON HARP CODEX</title>
+<style>
+  :root{
+    --void:#050208;
+    --deep-violet:#150a2e;
+    --cyan:#00f0ff;
+    --magenta:#ff00c8;
+    --ghost:#e8f9ff;
+    --warn:#ff3b5c;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ width:100%; height:100%; background:var(--void); overflow:hidden;
+    font-family:'JetBrains Mono','SF Mono','Courier New',monospace; }
+  #stage{ position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+  video{ position:absolute; width:2px; height:2px; opacity:0; pointer-events:none; }
+
+  #overlay{
+    position:fixed; inset:0; z-index:10;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:radial-gradient(ellipse at center, var(--deep-violet) 0%, var(--void) 75%);
+    transition:opacity .7s ease, visibility .7s ease;
+  }
+  #overlay.hidden{ opacity:0; visibility:hidden; pointer-events:none; }
+  #eyebrow{
+    color:rgba(232,249,255,0.45); font-size:0.68rem; letter-spacing:0.45em;
+    margin-bottom:0.9rem; text-transform:uppercase;
+  }
+  #title{
+    font-size:2.1rem; font-weight:700; letter-spacing:0.35em; color:var(--ghost);
+    text-shadow:0 0 18px var(--cyan), 0 0 42px var(--magenta);
+    margin-bottom:1.6rem;
+  }
+  #startBtn{
+    padding:0.85rem 2.6rem; font-size:0.95rem; letter-spacing:0.25em; font-family:inherit;
+    color:var(--cyan); background:transparent; border:1px solid var(--cyan); border-radius:2px;
+    cursor:pointer; box-shadow:0 0 16px rgba(0,240,255,0.45); transition:all .2s ease;
+  }
+  #startBtn:active{ background:rgba(0,240,255,0.18); transform:scale(0.97); }
+  #errorMsg{
+    display:none; margin-top:1.4rem; max-width:78%; text-align:center;
+    color:var(--warn); font-size:0.78rem; line-height:1.6; letter-spacing:0.02em;
+  }
+  #hint{
+    position:fixed; bottom:calc(7% + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); z-index:5;
+    color:rgba(0,240,255,0.6); font-size:0.72rem; letter-spacing:0.12em; text-align:center;
+    white-space:normal; width:min(88vw, 620px); line-height:1.8; pointer-events:none; opacity:0; transition:opacity 1s ease;
+  }
+  #hint.show{ opacity:1; }
+  #hud{
+    position:fixed; top:calc(0.75rem + env(safe-area-inset-top)); left:calc(0.75rem + env(safe-area-inset-left));
+    z-index:5; display:flex; gap:0.45rem; pointer-events:none; opacity:0; transition:opacity .7s ease;
+  }
+  #hud.show{ opacity:1; }
+  .handStatus{
+    min-width:5.9rem; padding:0.46rem 0.55rem; border:1px solid rgba(232,249,255,0.12);
+    background:rgba(5,2,8,0.38); box-shadow:0 0 18px rgba(0,240,255,0.08);
+    color:rgba(232,249,255,0.48); font-size:0.58rem; line-height:1.45; letter-spacing:0.08em;
+  }
+  .handStatus strong{ display:block; margin-bottom:0.16rem; color:rgba(232,249,255,0.72); font-size:0.62rem; }
+  .handStatus.active{ border-color:rgba(0,240,255,0.38); color:rgba(0,240,255,0.75); }
+  .handStatus.right.active{ border-color:rgba(255,0,200,0.38); color:rgba(255,155,232,0.78); }
+  .handStatus .dot{
+    display:inline-block; width:0.42rem; height:0.42rem; margin-right:0.32rem; border-radius:50%;
+    background:rgba(232,249,255,0.18); vertical-align:-0.02rem;
+  }
+  .handStatus.active .dot{ background:currentColor; box-shadow:0 0 10px currentColor; }
+  #effects{
+    position:fixed; right:calc(0.85rem + env(safe-area-inset-right)); top:50%; transform:translateY(-50%);
+    z-index:6; display:flex; flex-direction:column; gap:0.65rem; opacity:0; transition:opacity .7s ease;
+  }
+  #effects.show{ opacity:1; }
+  .effectBtn{
+    width:3.1rem; height:3.1rem; border-radius:50%; border:1px solid rgba(232,249,255,0.18);
+    color:rgba(232,249,255,0.58); background:rgba(5,2,8,0.42); font-family:inherit;
+    font-size:0.56rem; letter-spacing:0.08em; cursor:pointer; box-shadow:0 0 16px rgba(0,240,255,0.08);
+    transition:transform .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+  }
+  .effectBtn:active{ transform:scale(0.94); }
+  .effectBtn.active{
+    color:var(--ghost); border-color:rgba(0,240,255,0.74); background:rgba(0,240,255,0.12);
+    box-shadow:0 0 18px rgba(0,240,255,0.46), inset 0 0 12px rgba(255,0,200,0.18);
+  }
+  #credit{
+    position:fixed; right:calc(0.6rem + env(safe-area-inset-right)); bottom:calc(0.6rem + env(safe-area-inset-bottom));
+    z-index:5; color:rgba(232,249,255,0.28); font-size:0.6rem; letter-spacing:0.15em;
+    pointer-events:none; text-shadow:0 0 8px rgba(0,240,255,0.3);
+  }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+<video id="video" playsinline muted></video>
+<div id="hint">1 両手を映す / 2 親指と指を近づける / 3 光の弦をつまむ</div>
+<div id="hud">
+  <div class="handStatus left" id="leftStatus"><strong><span class="dot"></span>LEFT</strong><span class="statusText">SEARCHING</span></div>
+  <div class="handStatus right" id="rightStatus"><strong><span class="dot"></span>RIGHT</strong><span class="statusText">SEARCHING</span></div>
+</div>
+<div id="effects" aria-label="effects">
+  <button class="effectBtn" data-effect="echo" type="button">ECHO</button>
+  <button class="effectBtn" data-effect="shimmer" type="button">SHIM</button>
+  <button class="effectBtn" data-effect="void" type="button">VOID</button>
+</div>
+<div id="credit">PHOTON HARP CODEX — アパート</div>
+
+<div id="overlay">
+  <div id="eyebrow">CAMERA INSTRUMENT</div>
+  <div id="title">PHOTON HARP</div>
+  <button id="startBtn">START</button>
+  <div id="errorMsg">カメラを起動できませんでした。ブラウザのカメラ権限を許可してから再読み込みしてください。</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script>
+(() => {
+  'use strict';
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+  const video = document.getElementById('video');
+  const overlay = document.getElementById('overlay');
+  const startBtn = document.getElementById('startBtn');
+  const errorMsg = document.getElementById('errorMsg');
+  const hint = document.getElementById('hint');
+  const hud = document.getElementById('hud');
+  const effectsPanel = document.getElementById('effects');
+  const leftStatus = document.getElementById('leftStatus');
+  const rightStatus = document.getElementById('rightStatus');
+  const effectButtons = Array.from(document.querySelectorAll('.effectBtn'));
+
+  let W = 0, H = 0;
+  function resize(){ W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const effects = { echo:false, shimmer:false, void:false };
+  effectButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.effect;
+      effects[key] = !effects[key];
+      btn.classList.toggle('active', effects[key]);
+      applyAudioEffects();
+    });
+  });
+
+  /* ---------------- Audio engine ---------------- */
+  let actx = null, master = null, compressor = null, delayBus = null;
+  let echoBus = null, shimmerBus = null, voidBus = null;
+
+  function initAudio(){
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    master = actx.createGain();
+    master.gain.value = 0.9;
+    compressor = actx.createDynamicsCompressor();
+    compressor.threshold.setValueAtTime(-18, actx.currentTime);
+    compressor.ratio.setValueAtTime(4, actx.currentTime);
+    master.connect(compressor);
+    compressor.connect(actx.destination);
+
+    /* shimmer: cross-feedback delay pair standing in for reverb */
+    delayBus = actx.createGain();
+    delayBus.gain.value = 0.4;
+    const d1 = actx.createDelay(1.0); d1.delayTime.value = 0.28;
+    const d2 = actx.createDelay(1.0); d2.delayTime.value = 0.375;
+    const fb1 = actx.createGain(); fb1.gain.value = 0.34;
+    const fb2 = actx.createGain(); fb2.gain.value = 0.32;
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+    delayBus.connect(d1);
+    d1.connect(lp);
+    lp.connect(fb1);
+    fb1.connect(d2);
+    d2.connect(fb2);
+    fb2.connect(d1);
+    d1.connect(compressor);
+    d2.connect(compressor);
+
+    echoBus = actx.createGain();
+    echoBus.gain.value = 0;
+    const echoDelay = actx.createDelay(1.5); echoDelay.delayTime.value = 0.48;
+    const echoFb = actx.createGain(); echoFb.gain.value = 0.56;
+    const echoTone = actx.createBiquadFilter(); echoTone.type = 'bandpass'; echoTone.frequency.value = 1300; echoTone.Q.value = 0.8;
+    echoBus.connect(echoDelay);
+    echoDelay.connect(echoTone);
+    echoTone.connect(echoFb);
+    echoFb.connect(echoDelay);
+    echoDelay.connect(compressor);
+
+    shimmerBus = actx.createGain();
+    shimmerBus.gain.value = 0;
+    const shimmerHp = actx.createBiquadFilter(); shimmerHp.type = 'highpass'; shimmerHp.frequency.value = 1400;
+    const shimmerPeak = actx.createBiquadFilter(); shimmerPeak.type = 'peaking'; shimmerPeak.frequency.value = 3200; shimmerPeak.Q.value = 1.5; shimmerPeak.gain.value = 8;
+    const shimmerDelay = actx.createDelay(1.0); shimmerDelay.delayTime.value = 0.19;
+    const shimmerFb = actx.createGain(); shimmerFb.gain.value = 0.46;
+    shimmerBus.connect(shimmerHp);
+    shimmerHp.connect(shimmerPeak);
+    shimmerPeak.connect(shimmerDelay);
+    shimmerDelay.connect(shimmerFb);
+    shimmerFb.connect(shimmerDelay);
+    shimmerDelay.connect(compressor);
+
+    voidBus = actx.createGain();
+    voidBus.gain.value = 0;
+    const voidLp = actx.createBiquadFilter(); voidLp.type = 'lowpass'; voidLp.frequency.value = 520;
+    const voidDelay = actx.createDelay(1.8); voidDelay.delayTime.value = 0.72;
+    const voidFb = actx.createGain(); voidFb.gain.value = 0.42;
+    voidBus.connect(voidLp);
+    voidLp.connect(voidDelay);
+    voidDelay.connect(voidFb);
+    voidFb.connect(voidDelay);
+    voidDelay.connect(compressor);
+    applyAudioEffects();
+  }
+
+  function applyAudioEffects(){
+    if (!actx || !echoBus || !shimmerBus || !voidBus) return;
+    const now = actx.currentTime;
+    echoBus.gain.setTargetAtTime(effects.echo ? 0.58 : 0.0, now, 0.05);
+    shimmerBus.gain.setTargetAtTime(effects.shimmer ? 0.42 : 0.0, now, 0.06);
+    voidBus.gain.setTargetAtTime(effects.void ? 0.62 : 0.0, now, 0.08);
+    delayBus.gain.setTargetAtTime(effects.echo ? 0.28 : 0.4, now, 0.08);
+  }
+
+  /* quantized pentatonic-minor scale spanning ~2.25 octaves from A2 */
+  const SCALE = [0,3,5,7,10,12,15,17,19,22,24,27];
+  const ROOT = 110;
+  function noteFreq(t){
+    const clamped = Math.max(0, Math.min(0.999, t));
+    const idx = Math.floor(clamped * SCALE.length);
+    return ROOT * Math.pow(2, SCALE[idx] / 12);
+  }
+
+  function createDrone(){
+    const g = actx.createGain(); g.gain.value = 0;
+    const filt = actx.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = 900;
+    const o1 = actx.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = 220;
+    const o2 = actx.createOscillator(); o2.type = 'triangle'; o2.detune.value = 8; o2.frequency.value = 220;
+    o1.connect(filt); o2.connect(filt);
+    filt.connect(g);
+    g.connect(master); g.connect(delayBus);
+    g.connect(echoBus); g.connect(shimmerBus); g.connect(voidBus);
+    o1.start(); o2.start();
+    return { g, filt, o1, o2, active:false, lastSeen:0, landmarks:null };
+  }
+
+  function droneOn(v, freq){
+    const now = actx.currentTime;
+    v.o1.frequency.setTargetAtTime(freq, now, 0.03);
+    v.o2.frequency.setTargetAtTime(freq, now, 0.03);
+    v.g.gain.setTargetAtTime(0.22, now, 0.08);
+    v.active = true;
+  }
+  function droneOff(v){
+    const now = actx.currentTime;
+    v.g.gain.setTargetAtTime(0.0, now, 0.35);
+    v.active = false;
+  }
+  function droneFilter(v, cutoff){
+    v.filt.frequency.setTargetAtTime(cutoff, actx.currentTime, 0.06);
+  }
+
+  function pluck(freq, pan){
+    const now = actx.currentTime;
+    const o = actx.createOscillator(); o.type = 'triangle'; o.frequency.value = freq * 2;
+    const overtone = actx.createOscillator(); overtone.type = 'sine'; overtone.frequency.value = freq * 3.01;
+    const g = actx.createGain();
+    const og = actx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.5, now + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+    og.gain.setValueAtTime(0.0001, now);
+    og.gain.exponentialRampToValueAtTime(0.12, now + 0.012);
+    og.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+    const p = actx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan));
+    o.connect(g); g.connect(p);
+    overtone.connect(og); og.connect(p);
+    p.connect(master); p.connect(delayBus);
+    p.connect(echoBus); p.connect(shimmerBus); p.connect(voidBus);
+    if (effects.void){
+      const sub = actx.createOscillator(); sub.type = 'sine'; sub.frequency.value = freq * 0.5;
+      const sg = actx.createGain();
+      sg.gain.setValueAtTime(0.0001, now);
+      sg.gain.exponentialRampToValueAtTime(0.16, now + 0.02);
+      sg.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+      sub.connect(sg); sg.connect(voidBus);
+      sub.start(now); sub.stop(now + 0.82);
+    }
+    o.start(now);
+    overtone.start(now);
+    o.stop(now + 0.55);
+    overtone.stop(now + 0.36);
+  }
+
+  /* ---------------- Hand tracking ---------------- */
+  const hands = new Hands({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+  hands.setOptions({ maxNumHands:2, modelComplexity:0, minDetectionConfidence:0.6, minTrackingConfidence:0.5 });
+
+  const dronePool = {};
+  const pinchState = {};
+  const handInfo = {
+    Left:{ seen:false, drone:false, pluck:false, indexCharge:0, middleCharge:0, lastSeen:0 },
+    Right:{ seen:false, drone:false, pluck:false, indexCharge:0, middleCharge:0, lastSeen:0 }
+  };
+  let hasPlayed = false;
+  function markPlayed(){
+    if (!hasPlayed){ hasPlayed = true; hint.textContent = '弦が鳴りました。手の高さで音程、開き方で響きが変わります。'; setTimeout(() => hint.classList.remove('show'), 1800); }
+  }
+
+  function dist(a, b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+
+  const ON_T = 0.045, OFF_T = 0.07;
+  const PRE_T = 0.12;
+
+  function pinchCharge(d){
+    return Math.max(0, Math.min(1, (PRE_T - d) / (PRE_T - ON_T)));
+  }
+
+  function toScreen(pt){
+    return { x:(1 - pt.x) * W, y:pt.y * H };
+  }
+
+  function processHand(hand, lm){
+    if (!actx) return;
+    if (!dronePool[hand]) dronePool[hand] = createDrone();
+    if (!pinchState[hand]) pinchState[hand] = { droneOn:false, pluckOn:false };
+
+    const thumb = lm[4], index = lm[8], middle = lm[12], wrist = lm[0];
+    const dIndex = dist(thumb, index);
+    const dMiddle = dist(thumb, middle);
+    const info = handInfo[hand];
+    info.seen = true;
+    info.lastSeen = performance.now();
+    info.indexCharge = pinchCharge(dIndex);
+    info.middleCharge = pinchCharge(dMiddle);
+
+    const tips = [4,8,12,16,20];
+    let openSum = 0;
+    tips.forEach((ti) => { openSum += dist(wrist, lm[ti]); });
+    const openness = Math.max(0, Math.min(1, (openSum / 5) / 0.35));
+
+    const y = 1 - ((index.y + thumb.y) / 2);
+    const x = 1 - ((index.x + thumb.x) / 2); /* mirrored for selfie view */
+
+    const v = dronePool[hand];
+    const st = pinchState[hand];
+
+    const reg = hand === 'Right' ? 2 : 1; /* 両手が同音域で鳴り続けると単調なので右手は1オクターブ上に固定 */
+
+    if (!st.droneOn && dIndex < ON_T){
+      st.droneOn = true;
+      info.drone = true;
+      droneOn(v, noteFreq(y) * reg);
+      markPlayed();
+    } else if (st.droneOn && dIndex > OFF_T){
+      st.droneOn = false;
+      info.drone = false;
+      droneOff(v);
+    } else if (st.droneOn){
+      info.drone = true;
+      droneOn(v, noteFreq(y) * reg);
+    }
+    if (st.droneOn) droneFilter(v, 400 + openness * 3000);
+
+    if (!st.pluckOn && dMiddle < ON_T){
+      st.pluckOn = true;
+      info.pluck = true;
+      pluck(noteFreq(y) * 1.5 * reg, (x - 0.5) * 1.6);
+      spawnBurst(x * W, (1 - y) * H, hand === 'Left' ? [0,240,255] : [255,0,200], 30, 1.35);
+      spawnResonance(x * W, (1 - y) * H, hand === 'Left' ? [0,240,255] : [255,0,200]);
+      triggerGlitch();
+      markPlayed();
+    } else if (dMiddle > OFF_T){
+      st.pluckOn = false;
+      info.pluck = false;
+    }
+
+    v.lastSeen = performance.now();
+    v.landmarks = lm;
+  }
+
+  hands.onResults((results) => {
+    const seen = { Left:false, Right:false };
+    if (results.multiHandLandmarks){
+      results.multiHandLandmarks.forEach((lm, i) => {
+        const label = results.multiHandedness[i].label;
+        seen[label] = true;
+        processHand(label, lm);
+      });
+    }
+    ['Left','Right'].forEach((h) => {
+      if (!seen[h] && dronePool[h] && dronePool[h].active){
+        droneOff(dronePool[h]);
+        pinchState[h] = { droneOn:false, pluckOn:false };
+      }
+      if (!seen[h]){
+        handInfo[h].seen = false;
+        handInfo[h].drone = false;
+        handInfo[h].pluck = false;
+        handInfo[h].indexCharge *= 0.86;
+        handInfo[h].middleCharge *= 0.86;
+      }
+    });
+    updateHud();
+  });
+
+  function updateHud(){
+    const set = (el, info) => {
+      el.classList.toggle('active', info.seen);
+      const mode = info.drone ? 'DRONE' : info.pluck ? 'PLUCK' : info.seen ? 'READY' : 'SEARCHING';
+      el.querySelector('.statusText').textContent = mode;
+    };
+    set(leftStatus, handInfo.Left);
+    set(rightStatus, handInfo.Right);
+    if (!hasPlayed) updateHint();
+  }
+
+  function updateHint(){
+    const seenCount = (handInfo.Left.seen ? 1 : 0) + (handInfo.Right.seen ? 1 : 0);
+    const charge = Math.max(handInfo.Left.indexCharge, handInfo.Left.middleCharge, handInfo.Right.indexCharge, handInfo.Right.middleCharge);
+    if (seenCount === 0){
+      hint.textContent = '1 両手をカメラに映してください';
+    } else if (charge < 0.28){
+      hint.textContent = '2 親指と人差し指、または中指を近づけて光の弦を張る';
+    } else {
+      hint.textContent = '3 光が強くなったところで、指をつまんで鳴らす';
+    }
+  }
+
+  /* ---------------- Particles ---------------- */
+  const MAX_PARTICLES = 360;
+  let particles = [];
+  let resonances = [];
+  function spawnBurst(x, y, rgb, count = 18, force = 1){
+    for (let i = 0; i < count; i++){
+      const a = Math.random() * Math.PI * 2;
+      const sp = (1 + Math.random() * 4) * force;
+      particles.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:1, size:2 + Math.random() * 2.8, rgb });
+    }
+    if (particles.length > MAX_PARTICLES){
+      particles.splice(0, particles.length - MAX_PARTICLES);
+    }
+  }
+
+  function spawnAttractor(a, b, rgb, amount){
+    const count = Math.floor(2 + amount * 6);
+    for (let i = 0; i < count; i++){
+      const k = Math.random();
+      const x = a.x + (b.x - a.x) * k + (Math.random() - 0.5) * 14;
+      const y = a.y + (b.y - a.y) * k + (Math.random() - 0.5) * 14;
+      const pull = 0.018 + amount * 0.026;
+      particles.push({
+        x, y,
+        vx:(b.x - x) * pull + (Math.random() - 0.5) * 0.45,
+        vy:(b.y - y) * pull + (Math.random() - 0.5) * 0.45,
+        life:0.28 + amount * 0.24,
+        size:1.1 + amount * 1.6,
+        rgb
+      });
+    }
+  }
+
+  function spawnResonance(x, y, rgb){
+    resonances.push({ x, y, rgb, r:8, life:1 });
+    if (resonances.length > 16) resonances.shift();
+  }
+
+  /* 何も演奏していない時に画面が死なないよう常時漂う微光の粒 */
+  const idleMotes = Array.from({ length: 46 }, () => ({
+    x: Math.random(), y: Math.random(),
+    vx: (Math.random() - 0.5) * 0.00035, vy: (Math.random() - 0.5) * 0.00035,
+    ph: Math.random() * Math.PI * 2
+  }));
+  function drawIdleMotes(t, dim){
+    const mul = dim ? 0.35 : 1; /* 演奏中は控えめにして手の光を主役に譲る */
+    idleMotes.forEach((m) => {
+      m.x += m.vx; m.y += m.vy;
+      if (m.x < 0) m.x = 1; if (m.x > 1) m.x = 0;
+      if (m.y < 0) m.y = 1; if (m.y > 1) m.y = 0;
+      const tw = (0.25 + 0.2 * Math.sin(t * 0.0012 + m.ph)) * mul;
+      const hueShift = (t * 0.01 + m.ph * 40) % 360;
+      ctx.fillStyle = `hsla(${180 + Math.sin(hueShift * 0.017) * 60},100%,75%,${tw})`;
+      ctx.beginPath();
+      ctx.arc(m.x * W, m.y * H, 1.3, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+  /* ---------------- Glitch accent ---------------- */
+  let glitchUntil = 0;
+  function triggerGlitch(){ glitchUntil = performance.now() + 130; }
+  function drawGlitch(){
+    if (performance.now() > glitchUntil) return;
+    const bands = 2 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < bands; i++){
+      const by = Math.floor(Math.random() * H);
+      const bh = Math.min(H - by, 3 + Math.floor(Math.random() * 16));
+      const shift = Math.round((Math.random() - 0.5) * 46);
+      if (bh <= 0) continue;
+      try{
+        const strip = ctx.getImageData(0, by, W, bh);
+        ctx.putImageData(strip, shift, by);
+      } catch (e) { /* out-of-bounds edge case, safely ignored */ }
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(0,240,255,0.05)';
+    ctx.fillRect(-3, 0, W, H);
+    ctx.fillStyle = 'rgba(255,0,200,0.05)';
+    ctx.fillRect(3, 0, W, H);
+    ctx.restore();
+  }
+
+  /* ---------------- Render loop ---------------- */
+  function drawCameraFeed(t){
+    if (video.readyState < 2 || !video.videoWidth || !video.videoHeight){
+      ctx.fillStyle = 'rgba(5,2,8,1)';
+      ctx.fillRect(0, 0, W, H);
+      return;
+    }
+
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const scale = Math.max(W / vw, H / vh);
+    const dw = vw * scale;
+    const dh = vh * scale;
+    const dx = (W - dw) * 0.5;
+    const dy = (H - dh) * 0.5;
+
+    ctx.save();
+    ctx.translate(W, 0);
+    ctx.scale(-1, 1);
+    ctx.filter = effects.void ? 'grayscale(1) contrast(1.55) brightness(0.52)' : effects.shimmer ? 'grayscale(1) contrast(1.38) brightness(0.72)' : 'grayscale(1) contrast(1.2) brightness(0.62)';
+    ctx.globalAlpha = effects.void ? 0.38 : effects.shimmer ? 0.58 : 0.46;
+    ctx.drawImage(video, W - dx - dw, dy, dw, dh);
+
+    if (effects.echo){
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = 0.14;
+      ctx.filter = 'grayscale(1) contrast(1.75) brightness(0.72) blur(2px)';
+      ctx.drawImage(video, W - dx - dw - 22, dy, dw, dh);
+      ctx.globalAlpha = 0.09;
+      ctx.drawImage(video, W - dx - dw + 26, dy + 10, dw, dh);
+    }
+    if (effects.shimmer){
+      ctx.globalCompositeOperation = 'screen';
+      ctx.globalAlpha = 0.11;
+      ctx.filter = 'grayscale(1) contrast(2) brightness(0.86) blur(1px)';
+      ctx.drawImage(video, W - dx - dw + Math.sin(t * 0.003) * 12, dy - 8, dw, dh);
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = effects.void ? 'rgba(5,2,8,0.62)' : 'rgba(5,2,8,0.48)';
+    ctx.fillRect(0, 0, W, H);
+    const pulse = 0.05 + 0.025 * Math.sin(t * 0.0014);
+    const grad = ctx.createRadialGradient(W * 0.5, H * 0.45, 0, W * 0.5, H * 0.45, Math.max(W, H) * 0.72);
+    grad.addColorStop(0, effects.void ? `rgba(255,0,200,${pulse * 0.7})` : `rgba(0,240,255,${pulse})`);
+    grad.addColorStop(0.48, effects.shimmer ? 'rgba(0,240,255,0.18)' : 'rgba(21,10,46,0.2)');
+    grad.addColorStop(1, effects.void ? 'rgba(0,0,0,0.92)' : 'rgba(5,2,8,0.86)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  function drawEffectLayer(t){
+    if (effects.shimmer){
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const y = (t * 0.055) % H;
+      ctx.fillStyle = 'rgba(232,249,255,0.03)';
+      for (let i = 0; i < H; i += 7) ctx.fillRect(0, i, W, 1);
+      const sweep = ctx.createLinearGradient(0, y - 42, 0, y + 42);
+      sweep.addColorStop(0, 'rgba(0,240,255,0)');
+      sweep.addColorStop(0.5, 'rgba(0,240,255,0.18)');
+      sweep.addColorStop(1, 'rgba(255,0,200,0)');
+      ctx.fillStyle = sweep;
+      ctx.fillRect(0, y - 42, W, 84);
+      ctx.strokeStyle = 'rgba(232,249,255,0.09)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 7; i++){
+        const x = (W * (i / 6) + Math.sin(t * 0.001 + i) * 18) % W;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(W - x * 0.35, H);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    if (effects.void){
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(W * 0.5, H * 0.5, 0, W * 0.5, H * 0.5, Math.max(W, H) * 0.68);
+      g.addColorStop(0, 'rgba(255,0,200,0.06)');
+      g.addColorStop(0.38, 'rgba(0,240,255,0.035)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.fillStyle = 'rgba(0,0,0,0.14)';
+      ctx.beginPath();
+      ctx.arc(W * 0.5, H * 0.5, Math.max(W, H) * (0.34 + 0.03 * Math.sin(t * 0.001)), 0, Math.PI * 2);
+      ctx.rect(W, 0, -W, H);
+      ctx.fill('evenodd');
+      ctx.restore();
+    }
+  }
+
+  function drawHandWeb(lm, rgb){
+    const pts = [4,8,12,16,20].map((i) => ({ x:(1 - lm[i].x) * W, y: lm[i].y * H }));
+    const wrist = { x:(1 - lm[0].x) * W, y: lm[0].y * H };
+    const col = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.75)`;
+    ctx.shadowBlur = 16; ctx.shadowColor = col; ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    pts.forEach((p) => { ctx.moveTo(wrist.x, wrist.y); ctx.lineTo(p.x, p.y); });
+    for (let i = 0; i < pts.length - 1; i++){
+      ctx.moveTo(pts[i].x, pts[i].y);
+      ctx.lineTo(pts[i+1].x, pts[i+1].y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    pts.forEach((p) => {
+      ctx.beginPath(); ctx.fillStyle = col; ctx.shadowBlur = 10; ctx.shadowColor = col;
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+  }
+
+  function drawLightString(a, b, rgb, charge, active, phase){
+    if (charge <= 0.01) return;
+    const auraBoost = effects.shimmer ? 1.42 : effects.void ? 1.18 : 1;
+    const col = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    const mx = (a.x + b.x) * 0.5;
+    const my = (a.y + b.y) * 0.5;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.max(1, Math.hypot(dx, dy));
+    const nx = -dy / len;
+    const ny = dx / len;
+    const tremor = Math.sin(phase * 0.018 + len * 0.04) * (4 + charge * 12);
+    const bend = active ? tremor * 1.8 : tremor * charge;
+    const cx = mx + nx * bend;
+    const cy = my + ny * bend;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${0.18 + charge * 0.68})`;
+    ctx.shadowColor = col;
+    ctx.shadowBlur = (10 + charge * 34) * auraBoost;
+    ctx.lineWidth = (0.8 + charge * 4.2) * auraBoost;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(cx, cy, b.x, b.y);
+    ctx.stroke();
+
+    ctx.strokeStyle = `rgba(232,249,255,${0.1 + charge * 0.38})`;
+    ctx.lineWidth = 0.45 + charge * 1.2;
+    ctx.shadowBlur = (4 + charge * 12) * auraBoost;
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.quadraticCurveTo(mx - nx * bend * 0.35, my - ny * bend * 0.35, b.x, b.y);
+    ctx.stroke();
+    ctx.restore();
+
+    if (charge > 0.18) spawnAttractor(a, b, rgb, charge);
+  }
+
+  function drawGestureStrings(hand, lm, t){
+    const rgb = hand === 'Left' ? [0,240,255] : [255,0,200];
+    const info = handInfo[hand];
+    const thumb = toScreen(lm[4]);
+    const index = toScreen(lm[8]);
+    const middle = toScreen(lm[12]);
+    drawLightString(thumb, index, rgb, info.indexCharge, info.drone, t);
+    drawLightString(thumb, middle, rgb, info.middleCharge, info.pluck, t + 700);
+  }
+
+  function draw(){
+    const t = performance.now();
+    drawCameraFeed(t);
+
+    let anyHand = false;
+    ['Left','Right'].forEach((h) => {
+      const v = dronePool[h];
+      if (v && v.landmarks && t - v.lastSeen < 250){
+        anyHand = true;
+      }
+    });
+    drawIdleMotes(t, anyHand);
+    drawEffectLayer(t);
+    ['Left','Right'].forEach((h) => {
+      const v = dronePool[h];
+      if (v && v.landmarks && t - v.lastSeen < 250){
+        drawGestureStrings(h, v.landmarks, t);
+        drawHandWeb(v.landmarks, h === 'Left' ? [0,240,255] : [255,0,200]);
+      }
+    });
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    resonances.forEach((r) => {
+      r.r += 7.5;
+      r.life -= 0.018;
+      const alpha = Math.max(0, r.life);
+      ctx.strokeStyle = `rgba(${r.rgb[0]},${r.rgb[1]},${r.rgb[2]},${alpha * 0.22})`;
+      ctx.shadowColor = `rgb(${r.rgb[0]},${r.rgb[1]},${r.rgb[2]})`;
+      ctx.shadowBlur = 20 * alpha;
+      ctx.lineWidth = 1 + alpha * 3;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.restore();
+    resonances = resonances.filter((r) => r.life > 0);
+
+    ctx.save();
+    particles.forEach((p) => {
+      p.x += p.vx; p.y += p.vy; p.vx *= 0.94; p.vy *= 0.94; p.life -= 0.02;
+      ctx.globalAlpha = Math.max(0, p.life);
+      const col = `rgb(${p.rgb[0]},${p.rgb[1]},${p.rgb[2]})`;
+      ctx.fillStyle = col; ctx.shadowBlur = 12; ctx.shadowColor = col;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size || 3, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.restore();
+    particles = particles.filter((p) => p.life > 0);
+
+    drawGlitch();
+
+    requestAnimationFrame(draw);
+  }
+
+  /* ---------------- Start ---------------- */
+  let camera = null;
+  startBtn.addEventListener('click', async () => {
+    try{
+      initAudio();
+      if (actx.state === 'suspended') await actx.resume();
+      camera = new Camera(video, {
+        onFrame: async () => { await hands.send({ image: video }); },
+        width:640, height:480
+      });
+      await camera.start();
+      overlay.classList.add('hidden');
+      hint.classList.add('show');
+      hud.classList.add('show');
+      effectsPanel.classList.add('show');
+      requestAnimationFrame(draw);
+    } catch (err){
+      errorMsg.style.display = 'block';
+      console.error('PHOTON HARP init error:', err);
+    }
+  });
+})();
+</script>
+</body>
+</html>
