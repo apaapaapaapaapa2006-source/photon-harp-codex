@@ -2,18 +2,64 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="refresh" content="0; url=photon_harp_codex.html?v=47b69eba">
-<title>PHOTON HARP CODEX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050505">
+<meta name="description" content="Camera-based web instruments and hand-tracking games.">
+<title>Camera Works</title>
 <style>
-  html, body { margin:0; min-height:100%; background:#050208; color:#e8f9ff; font-family:system-ui, sans-serif; display:grid; place-items:center; }
-  a { color:#00f0ff; }
+  :root { color-scheme: dark; --bg:#050505; --ink:#f5f2ea; --muted:rgba(245,242,234,.68); --line:rgba(245,242,234,.16); --cyan:#00d7ff; --green:#74ff8f; --gold:#ffd166; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif; letter-spacing:0; }
+  main { min-height:100svh; display:grid; grid-template-rows:auto 1fr auto; padding:max(22px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left)); }
+  header, footer { display:flex; justify-content:space-between; gap:16px; align-items:center; }
+  .brand { font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.16em; }
+  .status { font-size:12px; color:rgba(245,242,234,.5); }
+  section { align-self:center; width:min(820px,100%); margin:7vh auto; }
+  h1 { margin:0 0 14px; font-size:clamp(42px,8vw,92px); line-height:.95; letter-spacing:0; }
+  .lead { max-width:680px; margin:0 0 34px; color:var(--muted); font-size:clamp(15px,2vw,19px); line-height:1.75; }
+  .works { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border-top:1px solid var(--line); }
+  .work { min-height:220px; display:flex; flex-direction:column; justify-content:space-between; gap:28px; padding:24px 0; color:inherit; text-decoration:none; border-bottom:1px solid var(--line); }
+  .work:not(:last-child) { border-right:1px solid var(--line); padding-right:22px; }
+  .work:last-child { padding-left:22px; }
+  .work h2 { margin:0 0 10px; font-size:clamp(23px,3vw,34px); letter-spacing:0; }
+  .work p { margin:0; color:var(--muted); line-height:1.65; font-size:14px; }
+  .tag { font-size:12px; text-transform:uppercase; letter-spacing:.14em; }
+  .photon .tag { color:var(--cyan); }
+  .maze .tag { color:var(--green); }
+  .arrow { color:var(--gold); font-size:24px; line-height:1; }
+  .tools { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+  .tools a { display:inline-flex; align-items:center; min-height:38px; padding:0 13px; border:1px solid var(--line); color:var(--ink); text-decoration:none; font-size:13px; }
+  .tools a:focus-visible, .work:focus-visible { outline:2px solid var(--gold); outline-offset:4px; }
+  @media (hover:hover) { .work:hover h2 { color:var(--gold); } .tools a:hover { border-color:var(--gold); } }
+  @media (max-width:700px) { header, footer { align-items:flex-start; flex-direction:column; } section { margin:54px auto; } .works { grid-template-columns:1fr; } .work, .work:not(:last-child), .work:last-child { padding-left:0; padding-right:0; border-right:0; } }
 </style>
 </head>
 <body>
-  <main>
-    <p>PHOTON HARP CODEX を開いています。</p>
-    <p><a href="photon_harp_codex.html?v=47b69eba">開かない場合はこちら</a></p>
-  </main>
+<main>
+  <header>
+    <div class="brand">Camera Works</div>
+    <div class="status">HTTPS / camera permission required</div>
+  </header>
+  <section aria-label="作品一覧">
+    <h1>Play with hands.</h1>
+    <p class="lead">カメラと手の動きを使うWeb作品です。ChromeまたはSafariで開き、カメラを許可してから開始してください。</p>
+    <div class="works">
+      <a class="work photon" href="photon_harp_codex.html">
+        <div><div class="tag">Instrument</div><h2>PHOTON HARP</h2><p>指と指の間に光の弦を張って演奏するカメラ楽器。</p></div>
+        <div class="arrow">-&gt;</div>
+      </a>
+      <a class="work maze" href="finger_maze_race.html">
+        <div><div class="tag">Game</div><h2>FINGER MAZE RACE</h2><p>2人で指を動かし、壁を避けながらゴールを目指すカメラゲーム。</p></div>
+        <div class="arrow">-&gt;</div>
+      </a>
+    </div>
+    <nav class="tools" aria-label="確認ツール">
+      <a href="camera_test.html">Camera test</a>
+      <a href="README.md">README</a>
+    </nav>
+  </section>
+  <footer><div class="status">MediaPipe dependencies load from CDN.</div></footer>
+</main>
 </body>
 </html>
