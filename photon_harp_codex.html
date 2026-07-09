@@ -98,7 +98,7 @@
 </head>
 <body>
 <canvas id="stage"></canvas>
-<video id="video" playsinline muted></video>
+<video id="video" autoplay playsinline muted></video>
 <div id="hint">1 両手を映す / 2 親指と指を近づける / 3 光の弦をつまむ</div>
 <div id="hud">
   <div class="handStatus left" id="leftStatus"><strong><span class="dot"></span>LEFT</strong><span class="statusText">SEARCHING</span></div>
@@ -118,7 +118,6 @@
   <div id="errorMsg">カメラを起動できませんでした。ブラウザのカメラ権限を許可してから再読み込みしてください。</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
 <script>
@@ -739,23 +738,73 @@
   }
 
   /* ---------------- Start ---------------- */
-  let camera = null;
+  let cameraStream = null;
+  let handLoopRunning = false;
+  let handFrameBusy = false;
+
+  async function startVideo(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      throw new Error('このブラウザはカメラ入力に対応していません。');
+    }
+    const preferred = {
+      audio:false,
+      video:{
+        facingMode:'user',
+        width:{ ideal:1280 },
+        height:{ ideal:720 }
+      }
+    };
+    try{
+      cameraStream = await navigator.mediaDevices.getUserMedia(preferred);
+    } catch (err){
+      cameraStream = await navigator.mediaDevices.getUserMedia({ audio:false, video:true });
+    }
+    video.srcObject = cameraStream;
+    video.muted = true;
+    video.playsInline = true;
+    await video.play();
+    if (!video.videoWidth || !video.videoHeight){
+      await new Promise((resolve) => {
+        video.onloadedmetadata = resolve;
+        setTimeout(resolve, 1200);
+      });
+    }
+  }
+
+  async function handLoop(){
+    if (!handLoopRunning) return;
+    if (!handFrameBusy && video.readyState >= 2 && video.videoWidth > 0){
+      handFrameBusy = true;
+      try{
+        await hands.send({ image: video });
+      } catch (err){
+        console.warn('PHOTON HARP hand tracking skipped frame:', err);
+      } finally {
+        handFrameBusy = false;
+      }
+    }
+    requestAnimationFrame(handLoop);
+  }
+
   startBtn.addEventListener('click', async () => {
     try{
+      startBtn.disabled = true;
+      startBtn.textContent = 'LOADING';
       initAudio();
       if (actx.state === 'suspended') await actx.resume();
-      camera = new Camera(video, {
-        onFrame: async () => { await hands.send({ image: video }); },
-        width:640, height:480
-      });
-      await camera.start();
+      await startVideo();
       overlay.classList.add('hidden');
       hint.classList.add('show');
       hud.classList.add('show');
       effectsPanel.classList.add('show');
+      handLoopRunning = true;
+      requestAnimationFrame(handLoop);
       requestAnimationFrame(draw);
     } catch (err){
       errorMsg.style.display = 'block';
+      errorMsg.textContent = 'カメラを起動できませんでした。HTTPSで開いているか、ブラウザのカメラ権限が許可されているか確認してください。';
+      startBtn.disabled = false;
+      startBtn.textContent = 'START';
       console.error('PHOTON HARP init error:', err);
     }
   });
