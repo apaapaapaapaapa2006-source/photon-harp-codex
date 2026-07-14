@@ -10,17 +10,12 @@
 <main id="loading">in_between ... v2 loading ...</main>
 <script>
 'use strict';
-const payloadFiles = [
-  'in_between_payload_0.txt',
-  'in_between_payload_1.txt',
-  'in_between_payload_2.txt',
-  'in_between_payload_3.txt'
-];
+const payloadFiles = Array.from({ length: 8 }, (_, i) => `in_between_part_${i}.txt`);
 async function boot() {
   try {
     if (!('DecompressionStream' in window)) throw new Error('DecompressionStream is not available in this browser');
     const parts = await Promise.all(payloadFiles.map(async path => {
-      const response = await fetch(path + '?v=20260714-2', { cache: 'no-store' });
+      const response = await fetch(path + '?v=20260714-4', { cache: 'no-store' });
       if (!response.ok) throw new Error(path + ' ' + response.status);
       return response.text();
     }));
