@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#050505">
-<meta name="description" content="Camera-based web instruments and hand-tracking games.">
+<meta name="description" content="Camera-based web instruments and hand-tracking visual works.">
 <title>Camera Works</title>
 <style>
-  :root { color-scheme: dark; --bg:#050505; --ink:#f5f2ea; --muted:rgba(245,242,234,.68); --line:rgba(245,242,234,.16); --cyan:#00d7ff; --green:#74ff8f; --gold:#ffd166; }
+  :root { color-scheme: dark; --bg:#050505; --ink:#f5f2ea; --muted:rgba(245,242,234,.68); --line:rgba(245,242,234,.16); --cyan:#00d7ff; --pink:#ff2e88; --green:#74ff8f; --acid:#3dff78; --gold:#ffd166; }
   * { box-sizing:border-box; }
   html, body { margin:0; min-height:100%; background:var(--bg); color:var(--ink); }
   body { font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif; letter-spacing:0; }
@@ -15,24 +15,29 @@
   header, footer { display:flex; justify-content:space-between; gap:16px; align-items:center; }
   .brand { font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.16em; }
   .status { font-size:12px; color:rgba(245,242,234,.5); }
-  section { align-self:center; width:min(820px,100%); margin:7vh auto; }
+  section { align-self:center; width:min(980px,100%); margin:7vh auto; }
   h1 { margin:0 0 14px; font-size:clamp(42px,8vw,92px); line-height:.95; letter-spacing:0; }
   .lead { max-width:680px; margin:0 0 34px; color:var(--muted); font-size:clamp(15px,2vw,19px); line-height:1.75; }
-  .works { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); border-top:1px solid var(--line); }
+  .works { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border-top:1px solid var(--line); }
   .work { min-height:220px; display:flex; flex-direction:column; justify-content:space-between; gap:28px; padding:24px 0; color:inherit; text-decoration:none; border-bottom:1px solid var(--line); }
-  .work:not(:last-child) { border-right:1px solid var(--line); padding-right:22px; }
-  .work:last-child { padding-left:22px; }
+  .work:not(:last-child) { border-right:1px solid var(--line); }
+  .work:nth-child(4n + 1) { padding-right:18px; }
+  .work:nth-child(4n + 2), .work:nth-child(4n + 3) { padding-left:18px; padding-right:18px; }
+  .work:nth-child(4n) { padding-left:18px; }
   .work h2 { margin:0 0 10px; font-size:clamp(23px,3vw,34px); letter-spacing:0; }
   .work p { margin:0; color:var(--muted); line-height:1.65; font-size:14px; }
   .tag { font-size:12px; text-transform:uppercase; letter-spacing:.14em; }
   .photon .tag { color:var(--cyan); }
+  .hand .tag { color:var(--pink); }
   .maze .tag { color:var(--green); }
+  .between .tag { color:var(--acid); }
   .arrow { color:var(--gold); font-size:24px; line-height:1; }
   .tools { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
   .tools a { display:inline-flex; align-items:center; min-height:38px; padding:0 13px; border:1px solid var(--line); color:var(--ink); text-decoration:none; font-size:13px; }
   .tools a:focus-visible, .work:focus-visible { outline:2px solid var(--gold); outline-offset:4px; }
   @media (hover:hover) { .work:hover h2 { color:var(--gold); } .tools a:hover { border-color:var(--gold); } }
-  @media (max-width:700px) { header, footer { align-items:flex-start; flex-direction:column; } section { margin:54px auto; } .works { grid-template-columns:1fr; } .work, .work:not(:last-child), .work:last-child { padding-left:0; padding-right:0; border-right:0; } }
+  @media (max-width:980px) { .works { grid-template-columns:repeat(2,minmax(0,1fr)); } .work { padding-left:0; padding-right:0; } .work:not(:last-child) { border-right:0; } .work:nth-child(odd) { padding-right:18px; border-right:1px solid var(--line); } .work:nth-child(even) { padding-left:18px; } }
+  @media (max-width:700px) { header, footer { align-items:flex-start; flex-direction:column; } section { margin:54px auto; } .works { grid-template-columns:1fr; } .work, .work:nth-child(odd), .work:nth-child(even) { padding-left:0; padding-right:0; border-right:0; } }
 </style>
 </head>
 <body>
@@ -45,14 +50,10 @@
     <h1>Play with hands.</h1>
     <p class="lead">カメラと手の動きを使うWeb作品です。ChromeまたはSafariで開き、カメラを許可してから開始してください。</p>
     <div class="works">
-      <a class="work photon" href="photon_harp_codex.html">
-        <div><div class="tag">Instrument</div><h2>PHOTON HARP</h2><p>指と指の間に光の弦を張って演奏するカメラ楽器。</p></div>
-        <div class="arrow">-&gt;</div>
-      </a>
-      <a class="work maze" href="finger_maze_race.html">
-        <div><div class="tag">Game</div><h2>FINGER MAZE RACE</h2><p>2人で指を動かし、壁を避けながらゴールを目指すカメラゲーム。</p></div>
-        <div class="arrow">-&gt;</div>
-      </a>
+      <a class="work photon" href="photon_harp_codex.html"><div><div class="tag">Instrument</div><h2>PHOTON HARP</h2><p>指と指の間に光の弦を張って演奏するカメラ楽器。</p></div><div class="arrow">-&gt;</div></a>
+      <a class="work hand" href="hand_glitch_v2.html"><div><div class="tag">Visual</div><h2>HAND//GLITCH</h2><p>両手の距離と反転で、映像パネル、色、音が切り替わるグリッチ作品。</p></div><div class="arrow">-&gt;</div></a>
+      <a class="work maze" href="finger_maze_race.html"><div><div class="tag">Game</div><h2>FINGER MAZE RACE</h2><p>2人で指を動かし、壁を避けながらゴールを目指すカメラゲーム。</p></div><div class="arrow">-&gt;</div></a>
+      <a class="work between" href="in_between_v2_1.html"><div><div class="tag">Synth</div><h2>in_between ... v2</h2><p>手の動きから、グリッチ、持続音、光の残像を生成するオーディオビジュアル・シンセ。</p></div><div class="arrow">-&gt;</div></a>
     </div>
     <nav class="tools" aria-label="確認ツール">
       <a href="camera_test.html">Camera test</a>
